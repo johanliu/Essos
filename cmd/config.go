@@ -1,22 +1,12 @@
-package essos
+package vidar
 
 import (
-	"context"
 	"io/ioutil"
 	"os"
 
+	"github.com/BurntSushi/toml"
 	"github.com/labstack/gommon/log"
-	"github.com/naoina/toml"
 )
-
-type Operation interface {
-	Description() string
-	Do(context.Context, []string) (context.Context, error)
-}
-
-type Component interface {
-	Discover() map[string]Operation
-}
 
 type tomlConfig struct {
 	Components []string
