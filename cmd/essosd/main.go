@@ -1,55 +1,58 @@
-package main
+package essosd
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
+	"plugin"
 	"regexp"
 
 	"github.com/johanliu/Vidar/constant"
+	"github.com/johanliu/essos"
 	"github.com/johanliu/mlog"
 	"github.com/johanliu/vidar"
 	"github.com/johanliu/vidar/middlewares"
 )
 
 const (
-	PLUGIN_DIR  = "./components"
-	ENTRY_POINT = "Entry"
+	pluginDir  = "./components"
+	entryPoint = "Entry"
 )
 
-type component struct {
+type compon struct {
 	operations map[string]essos.Operation
 }
 
-type essos struct {
+type essosd struct {
 	log        *mlog.Logger
-	components map[string]*component
+	components map[string]*compon
 }
 
-func (e *essos) loadPlugins() error {
-	if _, err := os.Stat(PLUGIN_DIR); err != nil {
+func (e *essosd) loadPlugins() error {
+	if _, err := os.Stat(pluginDir); err != nil {
 		return err
 	}
 
-	plugins, err := listFiles(PLUGIN_DIR, `*.so`)
+	ps, err := listFiles(pluginDir, `*.so`)
 	if err != nil {
 		return err
 	}
 
-	for _, plugin := range plugins {
+	for _, p := range ps {
 		//Open library in PLUGIN_DIR read from configuration file
-		lib, err := plugin.Open(path.Join(PLUGIN_DIR, plugin.Name()))
+		lib, err := plugin.Open(path.Join(pluginDir, p.Name()))
 		if err != nil {
-			fmt.Printf("failed to open plugin %s: %v\n", plugin.Name(), err)
+			fmt.Printf("failed to open plugin %s: %v\n", p.Name(), err)
 			continue
 		}
 
 		//Lookup Component variable in plugin which is entry point
-		symbol, err := lib.Lookup(ENTRY_POINT)
+		symbol, err := lib.Lookup(entryPoint)
 		if err != nil {
 			fmt.Printf("plugin %s does not export symbol \"%s\"\n",
-				plugin.Name(), ENTRY_POINT)
+				p.Name(), entryPoint)
 			continue
 		}
 
@@ -57,22 +60,22 @@ func (e *essos) loadPlugins() error {
 		component, ok := symbol.(essos.Component)
 		if !ok {
 			fmt.Printf("Symbol %s (from %s) does not implement Component interface\n",
-				ENTRY_POINT, plugin.Name())
+				entryPoint, p.Name())
 			continue
 		}
 
 		//Get the operations supported from plugin
 		ops := component.Discover()
 		if ops == nil {
-			fmt.Printf("No operations in %s\n", plugin.Name())
+			fmt.Printf("No operations in %s\n", p.Name())
 			continue
 		}
 
-		c := new(component)
+		c := new(compon)
 		for name, cmd := range ops {
 			c.operations[name] = cmd
 		}
-		e.components[plugin.Name()] = c
+		e.components[p.Name()] = c
 	}
 
 	return nil
@@ -108,11 +111,23 @@ func notFoundHandler(c *vidar.Context) {
 	c.Error(constant.NotFoundError)
 }
 
-func dnsHandler(c *vidar.Context) {
-	loadPlugins()
+type response struct {
+	Message string `json:message`
+	Code    int    `json:code`
 }
 
-func main() {
+type compFunc func(context.Context, []string) (context.Context, error)
+
+func handlerWrapper(cf compFunc) vidar.ContextUserFunc {
+	// res = cf()
+	res := new(response)
+
+	return func(c *vidar.Context) {
+		c.JSON(200, res)
+	}
+}
+
+func (e *essosd) Run(args ...string) {
 	commonHandler := vidar.NewChain()
 	v := vidar.New()
 
@@ -120,17 +135,30 @@ func main() {
 	commonHandler.Append(middlewares.RecoverHandler)
 
 	v.Router.Add("GET", "/", commonHandler.Use(indexHandler))
-	v.Router.Add("POST", "/dns/create", commonHandler.Use(dnsHandler))
-	v.Router.Add("POST", "/dns/read", commonHandler.Use(dnsHandler))
-	v.Router.Add("POST", "/dns/update", commonHandler.Use(dnsHandler))
-	v.Router.Add("POST", "/dns/delete", commonHandler.Use(dnsHandler))
+	// v.Router.Add("POST", "/dns/create", commonHandler.Use(dnsCreateHandler))
 	v.Router.NotFound = commonHandler.Use(notFoundHandler)
 
-	v.Run()
+	if err := v.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+	}
 }
 
-func NewEssos() *essos {
-	return &essos{
+func main() {
+
+	ParseConfig()
+
+	e := NewEssosd()
+
+	e.loadPlugins()
+
+	if err := e.Run(os.Args[1:]...); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func NewEssosd() *essosd {
+	return &essosd{
 		log: mlog.NewLogger(),
 	}
 }
