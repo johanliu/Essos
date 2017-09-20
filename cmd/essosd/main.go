@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -113,11 +111,6 @@ func notFoundHandler(c *vidar.Context) {
 	c.Error(constant.NotFoundError)
 }
 
-type response struct {
-	Message interface{}
-	Code    int
-}
-
 type compFunc func(context.Context, []string) (context.Context, error)
 
 func (e *essosd) handlerWrapper(cf compFunc) vidar.ContextUserFunc {
@@ -136,15 +129,9 @@ func (e *essosd) handlerWrapper(cf compFunc) vidar.ContextUserFunc {
 			e.log.Error(err)
 		}
 
-		res := new(response)
+		result := ctxReturn.Value("result").(essos.Response)
 
-		result := ctxReturn.Value("result").([]byte)
-
-		if err := json.Unmarshal(result, res); err != nil {
-			e.log.Error(err)
-		}
-
-		c.JSON(res.Code, res.Message)
+		c.JSON(result.Code, result.Message)
 	}
 }
 
@@ -201,8 +188,6 @@ func main() {
 	if err := e.addHandler(); err != nil {
 		e.log.Error(err)
 	}
-
-	fmt.Println(e.server.Router.ShowHandler())
 
 	if err := e.runServer(os.Args[1:]...); err != nil {
 		e.log.Error(err)

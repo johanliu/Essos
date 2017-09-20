@@ -12,3 +12,8 @@ type Operation interface {
 type Component interface {
 	Discover() map[string]Operation
 }
+
+type Response struct {
+	Message []byte
+	Code    int
+}
