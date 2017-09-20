@@ -2,12 +2,10 @@ package components
 
 import "github.com/johanliu/essos"
 
-type Init func() essos.Component
+var ComponentSets = map[string]essos.Component{}
 
-var Components = map[string]Init{}
-
-func Add(name string, init Init) {
-	Components[name] = init
+func Add(name string, c essos.Component) {
+	ComponentSets[name] = c
 }
 
 type DNS struct {

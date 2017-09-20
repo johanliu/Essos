@@ -1,7 +1,6 @@
-package main
+package cmd
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -10,25 +9,30 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
+type LibraryInfo struct {
+	Dns              components.DNS
+	Configmanagement components.ConfigManagement
+}
+
+type RPCInfo struct {
+	Pipeline components.Pipeline
+}
+
 type tomlConfig struct {
-	Hostname string
-	Override bool `toml:"config-override"`
-	Server   struct {
+	Hostname    string
+	Override    bool   `toml:"config_override"`
+	LibraryPath string `toml:"library_path"`
+	Server      struct {
 		IP    string
 		Port  string
-		HTTPS bool `toml:"https-enabled"`
+		HTTPS bool `toml:"https_enabled"`
 	}
 	Logging struct {
 		LogPath string `toml:"log_path"`
 		Level   string
 	}
-	Library struct {
-		DNS              components.DNS
-		ConfigManagement components.ConfigManagement `toml:"cm"`
-	}
-	RPC struct {
-		Pipeline components.Pipeline
-	}
+	Library LibraryInfo
+	RPC     RPCInfo
 }
 
 var tc tomlConfig
@@ -51,12 +55,4 @@ func ParseConfig(configFile string) (*tomlConfig, error) {
 	}
 
 	return &tc, nil
-}
-
-func main() {
-	tc, err := ParseConfig("/etc/essos.conf")
-	if err != nil {
-		log.Error(err)
-	}
-	fmt.Printf("%+v", tc)
 }
