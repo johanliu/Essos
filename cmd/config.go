@@ -5,17 +5,19 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/johanliu/essos/components"
-	"github.com/labstack/gommon/log"
+	"github.com/johanliu/essos/interfaces"
+	"github.com/johanliu/mlog"
 )
 
+var log = mlog.NewLogger()
+
 type LibraryInfo struct {
-	Dns              components.DNS
-	Configmanagement components.ConfigManagement
+	Dns              interfaces.DNS
+	Configmanagement interfaces.ConfigManagement
 }
 
 type RPCInfo struct {
-	Pipeline components.Pipeline
+	Pipeline interfaces.Pipeline
 }
 
 type tomlConfig struct {

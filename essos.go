@@ -14,6 +14,6 @@ type Component interface {
 }
 
 type Response struct {
-	Message []byte
+	Message interface{}
 	Code    int
 }
