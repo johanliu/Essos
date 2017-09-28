@@ -10,6 +10,7 @@ func Add(name string, c essos.Component) {
 
 type DNS struct {
 	Enabled bool
+	Type 	string
 	Path    string `toml:"library_path"`
 	Api     string `toml:"api_location"`
 	Etcd    string `toml:"etcd_address"`
@@ -18,12 +19,15 @@ type DNS struct {
 
 type ConfigManagement struct {
 	Enabled bool
+	Type 	string
 	Path    string `toml:"library_path"`
 	Api     string `toml:"api_location"`
 }
 
 type Pipeline struct {
 	Enabled bool
-	IP      string
+	Type 	string
+	Api     string `toml:"api_location"`
+	Ip      string
 	Port    string
 }

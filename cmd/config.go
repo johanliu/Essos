@@ -12,6 +12,7 @@ import (
 type LibraryInfo struct {
 	Dns              components.DNS
 	Configmanagement components.ConfigManagement
+	Pipeline         components.Pipeline
 }
 
 type RPCInfo struct {
