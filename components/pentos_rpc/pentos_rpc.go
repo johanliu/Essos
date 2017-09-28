@@ -71,7 +71,7 @@ func (addTerran) Description() string {
 
 func (obj addTerran) Do(ctx context.Context, args []string) (context.Context, error) {
 	reply, err := client.AddTerran(context.Background(), &pb.Request{Arg:args})
-	return result(ctx, reply, err, obj.Description())
+	return result(ctx, reply, err)
 }
 
 type deleteTerran string
@@ -82,7 +82,7 @@ func (deleteTerran) Description() string {
 
 func (obj deleteTerran) Do(ctx context.Context, args []string) (context.Context, error) {
 	reply, err := client.DeleteTerran(context.Background(), &pb.Request{Arg:args})
-	return result(ctx, reply, err, obj.Description())
+	return result(ctx, reply, err)
 }
 
 type listTerrans string
@@ -93,7 +93,7 @@ func (listTerrans) Description() string {
 
 func (obj listTerrans) Do(ctx context.Context, args []string) (context.Context, error) {
 	reply, err := client.ListTerrans(context.Background(), &pb.Request{Arg:args})
-	return result(ctx, reply, err, obj.Description())
+	return result(ctx, reply, err)
 }
 
 type checkComplete string
@@ -104,7 +104,7 @@ func (checkComplete) Description() string {
 
 func (obj checkComplete) Do(ctx context.Context, args []string) (context.Context, error) {
 	reply, err := client.CheckComplete(context.Background(), &pb.Request{Arg:args})
-	return result(ctx, reply, err, obj.Description())
+	return result(ctx, reply, err)
 }
 
 type listIncompleteFlags string
@@ -115,7 +115,7 @@ func (listIncompleteFlags ) Description() string {
 
 func (obj listIncompleteFlags ) Do(ctx context.Context, args []string) (context.Context, error) {
 	reply, err := client.ListIncompleteFlags(context.Background(), &pb.Request{Arg:args})
-	return result(ctx, reply, err, obj.Description())
+	return result(ctx, reply, err)
 }
 
 type markComplete string
@@ -126,33 +126,30 @@ func (markComplete) Description() string {
 
 func (obj markComplete) Do(ctx context.Context, args []string) (context.Context, error) {
 	reply, err := client.MarkComplete(context.Background(), &pb.Request{Arg:args})
-	return result(ctx, reply, err, obj.Description())
+	return result(ctx, reply, err)
 }
 
-func result(ctx context.Context, reply *pb.Reply, err error, description string) (context.Context, error) {
-	var code int
+func result(ctx context.Context, reply *pb.Reply, err error) (context.Context, error) {
+	var code int = 503
 	var msg string
 
 	if err != nil {
-		code = 503
-		msg = "failed to do rpc call: " + description + " " + err.Error()
-		log.Warn(msg)
+		msg = err.Error()
 	} else {
-		content, err := json.Marshal(reply.Msg);
-		if err == nil {
-			code = 200
-			msg = string(content)
+		if content, err := json.Marshal(reply.Msg); err != nil {
+			msg = err.Error()
 		} else {
-			code = 503
-			msg = "failed to do rpc call: " + description + " " + err.Error()
-			log.Warn(msg)
+			msg = string(content)
+			if reply.Code == 0 {
+				code = 200
+			}
 		}
 	}
-
 	result := essos.Response{
 		Code:    code,
 		Message: []byte(msg),
 	}
+	log.Infof("do rpc call, result code: %v, msg: %v", result.Code, string(result.Message))
 	ctx = context.WithValue(ctx, "result", result)
 	return ctx, nil
 }
