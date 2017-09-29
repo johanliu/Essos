@@ -23,17 +23,10 @@ import (
 const configPath = "/etc/essos.conf"
 
 type essosd struct {
-<<<<<<< HEAD
-	log           *mlog.Logger
-	components    map[string]essos.Component
-	rpcComponents map[string]essos.RpcComponent
-	server        *vidar.Vidar
-=======
 	log        *mlog.Logger
 	components map[string]essos.Component
 	server     *vidar.Vidar
 	chain      *vidar.Chain
->>>>>>> 5b164a5b7b3b1e15e01ae171a62767a37ccde02f
 }
 
 func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
@@ -82,8 +75,8 @@ func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
 		// connect to rpc server for rpc type
 		if condition.FieldByName("Type").String() == "rpc" {
 			e.log.Info("Component %s is rpc type", name)
-			ip := condition.FieldByName("Ip").String();
-			port := condition.FieldByName("Port").String();
+			ip := condition.FieldByName("Ip").String()
+			port := condition.FieldByName("Port").String()
 			rpc, ok := object.(essos.Rpc)
 			if !ok {
 				e.log.Warning("Object %s (from %s) does not implement Rpc interface\n",

@@ -12,14 +12,8 @@ import (
 var log = mlog.NewLogger()
 
 type LibraryInfo struct {
-<<<<<<< HEAD
-	Dns              components.DNS
-	Configmanagement components.ConfigManagement
-	Pipeline         components.Pipeline
-=======
 	Dns              interfaces.DNS
 	Configmanagement interfaces.ConfigManagement
->>>>>>> 5b164a5b7b3b1e15e01ae171a62767a37ccde02f
 }
 
 type RPCInfo struct {
