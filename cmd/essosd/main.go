@@ -163,7 +163,7 @@ func (e *essosd) addHandler() error {
 		for methodName, method := range operations {
 			e.log.Info("methodName: %s\n", methodName)
 			e.server.Router.POST(
-				strings.Join([]string{"", componentName, methodName}, "/"),
+				strings.Join([]string{"", componentName, methodName, ""}, "/"),
 				e.chain.Use(e.handlerWrapper(method.Do)),
 			)
 		}
@@ -198,8 +198,9 @@ func main() {
 		e.log.Error(err)
 	}
 
+	e.chain.Append(middlewares.SlashHandler)
 	e.chain.Append(middlewares.LoggingHandler)
-	//e.chain.Append(middlewares.RecoverHandler)
+	e.chain.Append(middlewares.RecoverHandler)
 
 	if err := e.addHandler(); err != nil {
 		e.log.Error(err)
