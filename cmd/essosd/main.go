@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -22,10 +23,17 @@ import (
 const configPath = "/etc/essos.conf"
 
 type essosd struct {
+<<<<<<< HEAD
 	log           *mlog.Logger
 	components    map[string]essos.Component
 	rpcComponents map[string]essos.RpcComponent
 	server        *vidar.Vidar
+=======
+	log        *mlog.Logger
+	components map[string]essos.Component
+	server     *vidar.Vidar
+	chain      *vidar.Chain
+>>>>>>> 5b164a5b7b3b1e15e01ae171a62767a37ccde02f
 }
 
 func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
@@ -105,6 +113,16 @@ func (e *essosd) loadRPC(cmd.RPCInfo) error {
 	return nil
 }
 
+func staticResource(root string) vidar.ContextUserFunc {
+	return func(ctx *vidar.Context) {
+		ctx.File(root)
+	}
+}
+
+func (e *essosd) renderPortal(prefix, root string) error {
+	return nil
+}
+
 func listFiles(dir, pattern string) ([]os.FileInfo, error) {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -149,32 +167,33 @@ func (e *essosd) handlerWrapper(cf compFunc) vidar.ContextUserFunc {
 			e.log.Error(err)
 		}
 
-		result := ctxReturn.Value("result").(essos.Response)
+		e.log.Info("context result return by caller: %+v", ctxReturn)
+
+		//result := ctxReturn.Value("result").(essos.Response)
+		result := essos.Response{
+			Code: 200,
+			Message: map[string]string{
+				"result": "okok",
+			},
+		}
 
 		c.JSON(result.Code, result.Message)
 	}
 }
 
 func (e *essosd) addHandler() error {
-	commonHandler := vidar.NewChain()
-	commonHandler.Append(middlewares.LoggingHandler)
-	commonHandler.Append(middlewares.RecoverHandler)
-
 	for componentName, component := range e.components {
 		operations := component.Discover()
 		e.log.Info("componentName: %s\n", componentName)
 
 		for methodName, method := range operations {
 			e.log.Info("methodName: %s\n", methodName)
-			e.server.Router.Add(
-				"POST",
+			e.server.Router.POST(
 				strings.Join([]string{"", componentName, methodName}, "/"),
-				e.handlerWrapper(method.Do),
+				e.chain.Use(e.handlerWrapper(method.Do)),
 			)
 		}
 	}
-
-	e.server.Router.NotFound = commonHandler.Use(notFoundHandler)
 
 	return nil
 }
@@ -205,9 +224,22 @@ func main() {
 		e.log.Error(err)
 	}
 
+	e.chain.Append(middlewares.LoggingHandler)
+	//e.chain.Append(middlewares.RecoverHandler)
+
 	if err := e.addHandler(); err != nil {
 		e.log.Error(err)
 	}
+
+	/*
+		if err := e.renderPortal("/portal", "portal"); err != nil {
+			e.log.Error(err)
+		}
+	*/
+
+	e.server.Router.NotFound = e.chain.Use(notFoundHandler)
+
+	fmt.Println(e.server.Router.ShowHandler())
 
 	if err := e.runServer(os.Args[1:]...); err != nil {
 		e.log.Error(err)
@@ -220,5 +252,6 @@ func NewEssosd() *essosd {
 		log:        mlog.NewLogger(),
 		components: map[string]essos.Component{},
 		server:     vidar.New(),
+		chain:      vidar.NewChain(),
 	}
 }

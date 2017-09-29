@@ -7,6 +7,7 @@ var ComponentSets = map[string]essos.Component{}
 func Add(name string, c essos.Component) {
 	ComponentSets[name] = c
 }
+<<<<<<< HEAD
 
 type DNS struct {
 	Enabled bool
@@ -31,3 +32,5 @@ type Pipeline struct {
 	Ip      string
 	Port    string
 }
+=======
+>>>>>>> 5b164a5b7b3b1e15e01ae171a62767a37ccde02f

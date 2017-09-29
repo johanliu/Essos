@@ -23,6 +23,6 @@ type RpcComponent interface {
 }
 
 type Response struct {
-	Message []byte
+	Message interface{}
 	Code    int
 }
