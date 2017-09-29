@@ -5,3 +5,4 @@ type Pipeline struct {
 	IP      string
 	Port    string
 }
+

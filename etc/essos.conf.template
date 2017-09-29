@@ -1,36 +1,39 @@
 hostname = "localhost"
+config_override = false
+library_path = "/opt/essos"
 
-skip-config-overrides = false
-
-[http]
-    bind-address = ":9092"
-    log-enabled = true
-    https-enabled = false
+[server]
+    ip = "0.0.0.0"
+    port = "9092"
+    https_enabled = false
     # https-certificate = "/etc/ssl/essos.pem"
 
 [logging]
-    path = "/var/log/essos/essos.log"
+    log_path = "/var/log/essos/essos.log"
     level = "INFO"
 
-[component]
-    path = "./components"
-
-[[library]]
+[library]
     [library.dns]
         enabled = true
-        api-location = "/norvos"
-        etcd-address = "192.168.0.1:2379, 192.168.0.2:2379, 192.168.0.3:2379"
+        library_path = "./components"
+        api_location = "/dns"
+        etcd_address = "192.168.0.1:2379, 192.168.0.2:2379, 192.168.0.3:2379"
         domain = "sre.miaozhen.com"
 
-    [library.cm]
+    [library.configmanagement]
         enabled = false
-        api-location = "/cm"
+        library_path = "./components"
+        api_location = "/cm"
 
-    [library.monitor]
-        enabled = false
+    #[library.monitor]
+    #    enabled = false
+    #    library_path = "./components"
 
-[[rpc]]
-    [rpc.pipeline]
-        enabled = false
-        ip = "192.168.1.1"
-        port = "50010"
+    [library.pipeline]
+        enabled = true
+	type = "rpc"
+        api_location = "/pipeline"
+        ip = "192.168.0.1"
+        port = "9231"
+
+[rpc]

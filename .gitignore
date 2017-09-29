@@ -1,1 +1,11 @@
+<<<<<<< HEAD
+# Created by .ignore support plugin (hsz.mobi)
+.idea/
+.git/
+target/
+
+*.iml
+
+=======
 .DS_Store
+>>>>>>> 5b164a5b7b3b1e15e01ae171a62767a37ccde02f

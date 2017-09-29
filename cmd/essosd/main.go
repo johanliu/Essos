@@ -11,22 +11,29 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/johanliu/Vidar/constant"
 	"github.com/johanliu/essos"
 	"github.com/johanliu/essos/cmd"
 	"github.com/johanliu/essos/components"
 	"github.com/johanliu/mlog"
 	"github.com/johanliu/vidar"
+	"github.com/johanliu/vidar/constant"
 	"github.com/johanliu/vidar/middlewares"
 )
 
 const configPath = "/etc/essos.conf"
 
 type essosd struct {
+<<<<<<< HEAD
+	log           *mlog.Logger
+	components    map[string]essos.Component
+	rpcComponents map[string]essos.RpcComponent
+	server        *vidar.Vidar
+=======
 	log        *mlog.Logger
 	components map[string]essos.Component
 	server     *vidar.Vidar
 	chain      *vidar.Chain
+>>>>>>> 5b164a5b7b3b1e15e01ae171a62767a37ccde02f
 }
 
 func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
@@ -39,6 +46,7 @@ func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
 		return err
 	}
 
+	// for all plugins
 	for _, p := range ps {
 		name := strings.Split(p.Name(), ".")[0]
 
@@ -49,25 +57,43 @@ func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
 			continue
 		}
 
+		// enable plugins
 		if !condition.FieldByName("Enabled").Bool() {
 			e.log.Warning("Component %s is not enabled", name)
 			continue
 		}
 
-		//Open library in PLUGIN_DIR read from configuration file
+		// Open library in PLUGIN_DIR read from configuration file
 		_, err := plugin.Open(path.Join(pluginDir, p.Name()))
 		if err != nil {
 			e.log.Warning("Failed to open plugin %s: %v\n", name, err)
 			continue
 		}
 
-		//Validate the object loaded from plugin
+		// Validate the object loaded from plugin
 		object := components.ComponentSets[name]
 		component, ok := object.(essos.Component)
 		if !ok {
-			e.log.Warning("Object %s (from %s) does not implement Component interface\n",
-				object, name)
+			e.log.Warning("Object %s (from %s) does not implement Component interface %v\n",
+				object, name, ok)
 			continue
+		}
+
+		// connect to rpc server for rpc type
+		if condition.FieldByName("Type").String() == "rpc" {
+			e.log.Info("Component %s is rpc type", name)
+			ip := condition.FieldByName("Ip").String();
+			port := condition.FieldByName("Port").String();
+			rpc, ok := object.(essos.Rpc)
+			if !ok {
+				e.log.Warning("Object %s (from %s) does not implement Rpc interface\n",
+					object, name)
+				continue
+			}
+			if err := rpc.InitConnection(ip, port); err != nil {
+				e.log.Warning("Can't connnect to rpc server %v", err)
+				continue
+			}
 		}
 
 		//Get the operations supported from plugin

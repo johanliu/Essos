@@ -13,6 +13,15 @@ type Component interface {
 	Discover() map[string]Operation
 }
 
+type Rpc interface {
+	InitConnection(string, string) (error)
+}
+
+type RpcComponent interface {
+	NewConnection(string, int)					// ip:port
+	Discover() map[string]Operation
+}
+
 type Response struct {
 	Message interface{}
 	Code    int
