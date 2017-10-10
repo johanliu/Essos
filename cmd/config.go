@@ -34,7 +34,7 @@ type tomlConfig struct {
 		Level   string
 	}
 	Library LibraryInfo
-	RPC     RPCInfo
+	// RPC     RPCInfo
 }
 
 var tc tomlConfig

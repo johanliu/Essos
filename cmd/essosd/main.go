@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -43,15 +42,15 @@ func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
 	for _, p := range ps {
 		name := strings.Split(p.Name(), ".")[0]
 
-		condition := reflect.ValueOf(li).FieldByName(strings.Title(name))
+		c := reflect.ValueOf(li).FieldByName(strings.Title(name))
 
-		if !condition.IsValid() {
+		if !c.IsValid() {
 			e.log.Warning("Component %s is not included in configs file", name)
 			continue
 		}
 
 		// enable plugins
-		if !condition.FieldByName("Enabled").Bool() {
+		if !c.FieldByName("Enabled").Bool() {
 			e.log.Warning("Component %s is not enabled", name)
 			continue
 		}
@@ -72,18 +71,20 @@ func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
 			continue
 		}
 
+		object.Init()
+
 		// connect to rpc server for rpc type
-		if condition.FieldByName("Type").String() == "rpc" {
+		if c.FieldByName("Type").String() == "rpc" {
 			e.log.Info("Component %s is rpc type", name)
-			ip := condition.FieldByName("Ip").String()
-			port := condition.FieldByName("Port").String()
-			rpc, ok := object.(essos.Rpc)
+			ip := c.FieldByName("IP").String()
+			port := c.FieldByName("Port").String()
+			rpc, ok := object.(essos.RPCComponent)
 			if !ok {
-				e.log.Warning("Object %s (from %s) does not implement Rpc interface\n",
+				e.log.Warning("Object %s (from %s) does not implement RPCComponent interface\n",
 					object, name)
 				continue
 			}
-			if err := rpc.InitConnection(ip, port); err != nil {
+			if err := rpc.Connect(ip, port); err != nil {
 				e.log.Warning("Can't connnect to rpc server %v", err)
 				continue
 			}
@@ -102,8 +103,8 @@ func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
 	return nil
 }
 
-func (e *essosd) loadRPC(cmd.RPCInfo) error {
-	return nil
+func (e *essosd) stopPlugins() {
+	//TODO: stop all rpc connections
 }
 
 func staticResource(root string) vidar.ContextUserFunc {
@@ -150,27 +151,18 @@ func (e *essosd) handlerWrapper(cf compFunc) vidar.ContextUserFunc {
 		if err != nil {
 			e.log.Error(err)
 		}
-		ctxArgs := context.WithValue(context.Background(), "Form", formValues)
+		ctxArgs := context.WithValue(context.Background(), "input", formValues)
 
-		// TODO: to be implemented
-		args := []string{"hello", "world"}
-
-		ctxReturn, err := cf(ctxArgs, args)
+		ctxReturn, err := cf(ctxArgs, nil)
 		if err != nil {
-			e.log.Error(err)
+			c.Error(constant.NotFoundError)
 		}
 
-		e.log.Info("context result return by caller: %+v", ctxReturn)
-
-		//result := ctxReturn.Value("result").(essos.Response)
-		result := essos.Response{
-			Code: 200,
-			Message: map[string]string{
-				"result": "okok",
-			},
+		if ctxReturn.Value("result") != nil {
+			result := ctxReturn.Value("result").(essos.Response)
+			e.log.Info("Result return by caller: %v", result)
+			c.JSON(result.Code, result.Message)
 		}
-
-		c.JSON(result.Code, result.Message)
 	}
 }
 
@@ -213,9 +205,7 @@ func main() {
 		e.log.Error(err)
 	}
 
-	if err := e.loadRPC(tc.RPC); err != nil {
-		e.log.Error(err)
-	}
+	defer e.stopPlugins()
 
 	e.chain.Append(middlewares.SlashHandler)
 	e.chain.Append(middlewares.LoggingHandler)
@@ -233,7 +223,7 @@ func main() {
 
 	e.server.Router.NotFound = e.chain.Use(notFoundHandler)
 
-	fmt.Println(e.server.Router.ShowHandler())
+	// fmt.Println(e.server.Router.ShowHandler())
 
 	if err := e.runServer(os.Args[1:]...); err != nil {
 		e.log.Error(err)

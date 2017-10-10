@@ -13,12 +13,9 @@ type Component interface {
 	Discover() map[string]Operation
 }
 
-type Rpc interface {
-	InitConnection(string, string) (error)
-}
-
-type RpcComponent interface {
-	NewConnection(string, int)					// ip:port
+type RPCComponent interface {
+	Connect(string, string) error
+	Close()
 	Discover() map[string]Operation
 }
 
