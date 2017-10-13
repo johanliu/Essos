@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/johanliu/essos"
 	"github.com/johanliu/essos/cmd"
@@ -42,15 +43,14 @@ func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
 	for _, p := range ps {
 		name := strings.Split(p.Name(), ".")[0]
 
-		c := reflect.ValueOf(li).FieldByName(strings.Title(name))
+		conf := reflect.ValueOf(li).FieldByName(strings.Title(name))
 
-		if !c.IsValid() {
-			e.log.Warning("Component %s is not included in configs file", name)
+		if !conf.IsValid() {
+			e.log.Warning("Component %s is not found in configs file", name)
 			continue
 		}
 
-		// enable plugins
-		if !c.FieldByName("Enabled").Bool() {
+		if !conf.FieldByName("Enabled").Bool() {
 			e.log.Warning("Component %s is not enabled", name)
 			continue
 		}
@@ -63,7 +63,12 @@ func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
 		}
 
 		// Validate the object loaded from plugin
-		object := components.ComponentSets[name]
+		object, ok := components.ComponentSets[name]
+		if !ok {
+			e.log.Warning("Faile to start plugin %s", name)
+			continue
+		}
+
 		component, ok := object.(essos.Component)
 		if !ok {
 			e.log.Warning("Object %s (from %s) does not implement Component interface %v\n",
@@ -71,23 +76,8 @@ func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
 			continue
 		}
 
-		object.Init()
-
-		// connect to rpc server for rpc type
-		if c.FieldByName("Type").String() == "rpc" {
-			e.log.Info("Component %s is rpc type", name)
-			ip := c.FieldByName("IP").String()
-			port := c.FieldByName("Port").String()
-			rpc, ok := object.(essos.RPCComponent)
-			if !ok {
-				e.log.Warning("Object %s (from %s) does not implement RPCComponent interface\n",
-					object, name)
-				continue
-			}
-			if err := rpc.Connect(ip, port); err != nil {
-				e.log.Warning("Can't connnect to rpc server %v", err)
-				continue
-			}
+		if err := component.Start(conf.Interface()); err != nil {
+			e.log.Error(err)
 		}
 
 		//Get the operations supported from plugin
@@ -104,7 +94,17 @@ func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
 }
 
 func (e *essosd) stopPlugins() {
-	//TODO: stop all rpc connections
+	wg := sync.WaitGroup{}
+
+	for _, c := range e.components {
+		wg.Add(1)
+		go func(wg *sync.WaitGroup) {
+			c.Stop()
+			wg.Done()
+		}(&wg)
+	}
+
+	wg.Wait()
 }
 
 func staticResource(root string) vidar.ContextUserFunc {
@@ -147,21 +147,22 @@ type compFunc func(context.Context, []string) (context.Context, error)
 
 func (e *essosd) handlerWrapper(cf compFunc) vidar.ContextUserFunc {
 	return func(c *vidar.Context) {
-		formValues, err := c.FormParams()
-		if err != nil {
-			e.log.Error(err)
-		}
-		ctxArgs := context.WithValue(context.Background(), "input", formValues)
+		input := c.Body()
+		ctxArgs := context.WithValue(context.Background(), "input", input)
 
 		ctxReturn, err := cf(ctxArgs, nil)
 		if err != nil {
-			c.Error(constant.NotFoundError)
-		}
-
-		if ctxReturn.Value("result") != nil {
-			result := ctxReturn.Value("result").(essos.Response)
-			e.log.Info("Result return by caller: %v", result)
-			c.JSON(result.Code, result.Message)
+			e.log.Error(err)
+			c.Error(err)
+		} else {
+			if ctxReturn.Value("result") != nil {
+				result := ctxReturn.Value("result")
+				e.log.Info("Result return by caller: %+v", result)
+				c.JSON(200, result)
+			} else {
+				e.log.Info("No result is returned")
+				c.Error(constant.NotImplementedError)
+			}
 		}
 	}
 }

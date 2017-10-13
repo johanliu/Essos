@@ -10,16 +10,7 @@ type Operation interface {
 }
 
 type Component interface {
+	Start(interface{}) error //Used to initialize the component
 	Discover() map[string]Operation
-}
-
-type RPCComponent interface {
-	Connect(string, string) error
-	Close()
-	Discover() map[string]Operation
-}
-
-type Response struct {
-	Message interface{}
-	Code    int
+	Stop() error //Used to clean the component
 }
