@@ -16,8 +16,7 @@ import (
 	"github.com/johanliu/essos/components"
 	"github.com/johanliu/mlog"
 	"github.com/johanliu/vidar"
-	"github.com/johanliu/vidar/constant"
-	"github.com/johanliu/vidar/middlewares"
+	"github.com/johanliu/vidar/plugins"
 )
 
 const configPath = "/etc/essos.conf"
@@ -26,7 +25,7 @@ type essosd struct {
 	log        *mlog.Logger
 	components map[string]essos.Component
 	server     *vidar.Vidar
-	chain      *vidar.Chain
+	chain      *vidar.Plugin
 }
 
 func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
@@ -107,7 +106,7 @@ func (e *essosd) stopPlugins() {
 	wg.Wait()
 }
 
-func staticResource(root string) vidar.ContextUserFunc {
+func staticResource(root string) vidar.ContextFunc {
 	return func(ctx *vidar.Context) {
 		ctx.File(root)
 	}
@@ -140,12 +139,12 @@ func listFiles(dir, pattern string) ([]os.FileInfo, error) {
 }
 
 func notFoundHandler(c *vidar.Context) {
-	c.Error(constant.NotFoundError)
+	c.Error(vidar.NotFoundError)
 }
 
 type compFunc func(context.Context, []string) (context.Context, error)
 
-func (e *essosd) handlerWrapper(cf compFunc) vidar.ContextUserFunc {
+func (e *essosd) handlerWrapper(cf compFunc) vidar.ContextFunc {
 	return func(c *vidar.Context) {
 		input := c.Body()
 		ctxArgs := context.WithValue(context.Background(), "input", input)
@@ -161,7 +160,7 @@ func (e *essosd) handlerWrapper(cf compFunc) vidar.ContextUserFunc {
 				c.JSON(200, result)
 			} else {
 				e.log.Info("No result is returned")
-				c.Error(constant.NotImplementedError)
+				c.Error(vidar.NotImplementedError)
 			}
 		}
 	}
@@ -176,7 +175,7 @@ func (e *essosd) addHandler() error {
 			e.log.Info("methodName: %s\n", methodName)
 			e.server.Router.POST(
 				strings.Join([]string{"", componentName, methodName, ""}, "/"),
-				e.chain.Use(e.handlerWrapper(method.Do)),
+				e.chain.Apply(e.handlerWrapper(method.Do)),
 			)
 		}
 	}
@@ -208,9 +207,9 @@ func main() {
 
 	defer e.stopPlugins()
 
-	e.chain.Append(middlewares.SlashHandler)
-	e.chain.Append(middlewares.LoggingHandler)
-	e.chain.Append(middlewares.RecoverHandler)
+	e.chain.Append(plugins.SlashHandler)
+	e.chain.Append(plugins.LoggingHandler)
+	e.chain.Append(plugins.RecoverHandler)
 
 	if err := e.addHandler(); err != nil {
 		e.log.Error(err)
@@ -222,7 +221,7 @@ func main() {
 		}
 	*/
 
-	e.server.Router.NotFound = e.chain.Use(notFoundHandler)
+	e.server.Router.NotFound = e.chain.Apply(notFoundHandler)
 
 	// fmt.Println(e.server.Router.ShowHandler())
 
@@ -237,6 +236,6 @@ func NewEssosd() *essosd {
 		log:        mlog.NewLogger(),
 		components: map[string]essos.Component{},
 		server:     vidar.New(),
-		chain:      vidar.NewChain(),
+		chain:      vidar.NewPlugin(),
 	}
 }
