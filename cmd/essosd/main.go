@@ -174,7 +174,7 @@ func (e *essosd) addHandler() error {
 		for methodName, method := range operations {
 			e.log.Info("methodName: %s\n", methodName)
 			e.server.Router.POST(
-				strings.Join([]string{"", componentName, methodName, ""}, "/"),
+				strings.Join([]string{"", componentName, methodName}, "/"),
 				e.chain.Apply(e.handlerWrapper(method.Do)),
 			)
 		}
@@ -207,7 +207,6 @@ func main() {
 
 	defer e.stopPlugins()
 
-	e.chain.Append(plugins.SlashHandler)
 	e.chain.Append(plugins.LoggingHandler)
 	e.chain.Append(plugins.RecoverHandler)
 
@@ -222,8 +221,6 @@ func main() {
 	*/
 
 	e.server.Router.NotFound = e.chain.Apply(notFoundHandler)
-
-	// fmt.Println(e.server.Router.ShowHandler())
 
 	if err := e.runServer(os.Args[1:]...); err != nil {
 		e.log.Error(err)
