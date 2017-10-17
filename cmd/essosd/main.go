@@ -113,6 +113,7 @@ func staticResource(root string) vidar.ContextFunc {
 }
 
 func (e *essosd) renderPortal(prefix, root string) error {
+	e.server.Router.Static(prefix, root)
 	return nil
 }
 
@@ -214,11 +215,9 @@ func main() {
 		e.log.Error(err)
 	}
 
-	/*
-		if err := e.renderPortal("/portal", "portal"); err != nil {
-			e.log.Error(err)
-		}
-	*/
+	if err := e.renderPortal("/portal", "public"); err != nil {
+		e.log.Error(err)
+	}
 
 	e.server.Router.NotFound = e.chain.Apply(notFoundHandler)
 
