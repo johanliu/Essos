@@ -215,7 +215,7 @@ func main() {
 		e.log.Error(err)
 	}
 
-	if err := e.renderPortal("/portal", "public"); err != nil {
+	if err := e.renderPortal("/", "./public"); err != nil {
 		e.log.Error(err)
 	}
 
