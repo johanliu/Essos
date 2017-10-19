@@ -11,9 +11,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/johanliu/essos"
-	"github.com/johanliu/essos/cmd"
-	"github.com/johanliu/essos/components"
+	"gitlab.mzsvn.com/SRE/essos"
+	"gitlab.mzsvn.com/SRE/essos/cmd"
+	"gitlab.mzsvn.com/SRE/essos/components"
 	"github.com/johanliu/mlog"
 	"github.com/johanliu/vidar"
 	"github.com/johanliu/vidar/plugins"
@@ -42,6 +42,7 @@ func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
 	for _, p := range ps {
 		name := strings.Split(p.Name(), ".")[0]
 
+		e.log.Warning("%v", li)
 		conf := reflect.ValueOf(li).FieldByName(strings.Title(name))
 
 		if !conf.IsValid() {
@@ -64,7 +65,7 @@ func (e *essosd) loadPlugins(pluginDir string, li cmd.LibraryInfo) error {
 		// Validate the object loaded from plugin
 		object, ok := components.ComponentSets[name]
 		if !ok {
-			e.log.Warning("Faile to start plugin %s", name)
+			e.log.Warning("Failed to start plugin %s", name)
 			continue
 		}
 
@@ -113,7 +114,7 @@ func staticResource(root string) vidar.ContextFunc {
 }
 
 func (e *essosd) renderPortal(prefix, root string) error {
-	e.server.Router.Static(prefix, root)
+	e.server.Router.Static(prefix, root, e.chain)
 	return nil
 }
 

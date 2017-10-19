@@ -5,8 +5,9 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/johanliu/essos/interfaces"
+
 	"github.com/johanliu/mlog"
+	"gitlab.mzsvn.com/SRE/essos/interfaces"
 )
 
 var log = mlog.NewLogger()
@@ -14,17 +15,18 @@ var log = mlog.NewLogger()
 type LibraryInfo struct {
 	Dns              interfaces.DNS
 	Configmanagement interfaces.ConfigManagement
+	Pipeline         interfaces.Pipeline
 }
 
-type RPCInfo struct {
-	Pipeline interfaces.Pipeline
-}
+//type RPCInfo struct {
+//	Pipeline interfaces.Pipeline
+//}
 
 type tomlConfig struct {
 	Hostname    string
 	Override    bool   `toml:"config_override"`
 	LibraryPath string `toml:"library_path"`
-	Server      struct {
+	Server struct {
 		IP    string
 		Port  string
 		HTTPS bool `toml:"https_enabled"`
