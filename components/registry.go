@@ -1,6 +1,6 @@
 package components
 
-import "github.com/johanliu/essos"
+import "gitlab.mzsvn.com/SRE/essos"
 
 var ComponentSets = map[string]essos.Component{}
 
