@@ -113,7 +113,7 @@ func staticResource(root string) vidar.ContextFunc {
 }
 
 func (e *essosd) renderPortal(prefix, root string) error {
-	e.server.Router.Static(prefix, root)
+	e.server.Router.Static(prefix, root, e.chain)
 	return nil
 }
 
@@ -228,10 +228,13 @@ func main() {
 }
 
 func NewEssosd() *essosd {
+
+	log, server := vidar.New()
+
 	return &essosd{
 		log:        mlog.NewLogger(),
 		components: map[string]essos.Component{},
-		server:     vidar.New(),
+		server:     server,
 		chain:      vidar.NewPlugin(),
 	}
 }
